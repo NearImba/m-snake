@@ -5,10 +5,19 @@
     <title>X</title>
 </head>
 <body>
+<div id="welcome">
+    <input type="text" value="NearImba" id="username" />
+    <button onclick="start()">START</button>
+</div>
+<script src="socket.io.js"></script>
 <script src="tools.js"></script>
 <script src="game.js"></script>
 <script>
-    let D = new Game()
+    let game = new Game()
+
+    function start() {
+        game.weclomeUser(document.getElementById('username').value || 'unnamed')
+    }
 </script>
 </body>
 </html>

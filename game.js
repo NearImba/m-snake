@@ -4,8 +4,11 @@ const pointPerBody = 20
 const R = 3
 const GameWidth = 400
 const GameHeight = 400
-const LENGHT = 400
+const LENGTH = 400
+const UPDATEPERSECOND = 40 //ms
+
 let GL = null
+
 const vertexShader = `
     attribute vec4 a_Position;
     void main() {
@@ -20,11 +23,11 @@ const fragmentShader = `
 `
 
 function translateXWebToGL (x) {
-    return (x - LENGHT/2)/(LENGHT/2)
+    return (x - LENGTH/2)/(LENGTH/2)
 }
 
 function translateYWebToGL (y) {
-    return (LENGHT/2 - y)/(LENGHT/2)
+    return (LENGTH/2 - y)/(LENGTH/2)
 }
 
 class Snake {
@@ -32,9 +35,9 @@ class Snake {
         this.speedPerSecond = 12
         this.body = []
         this.lifePoint = initSnakeLifePoint
-        this.length = 5
+        this.length = 50
 
-        this.N = 1 //render a circle per N
+        this.N = 2 //render a circle per N
 
         this.directVertex = {
             x: 1,
@@ -66,6 +69,16 @@ class Snake {
         //console.log(this.directVertex)
     }
 
+    returnRenderBodies () {
+        let r = [], n = this.N
+        this.body.forEach( (item, index) => {
+            if(n === 0  || index % n === 0) {
+                r.push(item)
+            }
+        })
+        return r
+    }
+
     move () {
         let X = this.body[0].x,
             Y = this.body[0].y
@@ -91,29 +104,55 @@ class Snake {
     }
 }
 
+let alive = true
+
 class Game {
     constructor (p) {
         this.width = GameWidth
         this.height = GameHeight
         this.snakes = []
         this.initSnakesNum = 3
-        this.playerID = 1
-
-        for(let i = 0; i < this.initSnakesNum; i++) {
-            this.insertSnake()
-        }
-
-        this.initCanvas()
-        this.initHandler()
-        this.run()
+        this.playerID = Math.floor(Math.random()*100000000).toString()
+        this.lastDataUpdatedTime = new Date().getTime()
+        this.connectToServer()
     }
 
-    run () {
-        setInterval(() => {
-            this.updateAllSnakesData()
-            this.render()
-        },300)
+    connectToServer () {
+        this.socket = io('http://localhost:9527')
+        this.socket.on('ALIVE', (data) => {
+            this.insertSnake(data);
+        })
 
+        this.socket.on('WELCOME', (data) => {
+            this.initCanvas()
+            this.initHandler()
+            this.runGame()
+        })
+    }
+
+    weclomeUser (name) {
+        if (name) {
+            this.socket.emit('NEW-GUY',{
+                name: name,
+                id: this.playerID
+            })
+        }
+    }
+
+    runGame () {
+        if(alive) {
+            let t = new Date().getTime()
+            if(t - this.lastDataUpdatedTime > UPDATEPERSECOND) {
+                this.updateAllSnakesData()
+                this.lastDataUpdatedTime = t
+            }
+            this.render()
+            requestAnimationFrame(function () {
+                this.runGame()
+            }.bind(this))
+        } else {
+            alert('Game Over')
+        }
     }
 
     initCanvas () {
@@ -135,23 +174,31 @@ class Game {
         let _t = this
         function handler (e) {
             //console.log(e)
+            let X = e.clientX, Y = e.clientY
             this.snakes[this.playerID].updateDirectVertex({
-                x: e.clientX,
-                y: e.clientY
+                x: X,
+                y: Y
+            })
+            this.socket.emit('INPUT', {
+                id: this.playerID,
+                point: {
+                    x: X,
+                    y: Y
+                }
             })
         }
         this.canvas.addEventListener('click', handler.bind(this), false)
     }
 
-    insertSnake () {
-        this.snakes.push(new Snake({
-            x: 100,
-            y: 200 + this.snakes.length * 50
+    insertSnake (a) {
+        this.snakes[this.playerID] = (new Snake({
+            x: a.x,
+            y: a.y
         }))
     }
 
     updateAllSnakesData () {
-        for(let i = 0; i < this.snakes.length; i++) {
+        for(let i in this.snakes) {
             this.snakes[i].move()
         }
     }
@@ -163,10 +210,11 @@ class Game {
 
         let pts = []
 
-        for(let i = 0; i < this.snakes.length; i++) {
-            for(let j = 0; j < this.snakes[i].body.length; j++) {
-                pts.push(translateXWebToGL(this.snakes[i].body[j].x))
-                pts.push(translateYWebToGL(this.snakes[i].body[j].y))
+        for(let key in this.snakes) {
+            let B = this.snakes[key].returnRenderBodies()
+            for(let j = 0; j < B.length; j++) {
+                pts.push(translateXWebToGL(B[j].x))
+                pts.push(translateYWebToGL(B[j].y))
             }
         }
 
