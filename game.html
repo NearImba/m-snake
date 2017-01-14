@@ -3,20 +3,25 @@
 <head lang="en">
     <meta charset="UTF-8">
     <title>X</title>
+    <style>
+        canvas {
+            border: #ccc 1px solid;
+        }
+    </style>
 </head>
 <body>
 <div id="welcome">
     <input type="text" value="NearImba" id="username" />
-    <button onclick="start()">START</button>
+    <button onclick="start(this)">START</button>
 </div>
 <script src="socket.io.js"></script>
 <script src="tools.js"></script>
 <script src="game.js"></script>
 <script>
-    let game = new Game()
-
-    function start() {
+    function start(a) {
+        let game = new Game()
         game.weclomeUser(document.getElementById('username').value || 'unnamed')
+        a.parentNode.removeChild(a)
     }
 </script>
 </body>
