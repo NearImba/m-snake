@@ -24,7 +24,6 @@ const fragmentShader = `
     varying vec4 vector_color;
     void main() {
         gl_FragColor = vector_color;
-        //gl_FragColor = vec4(0,1,0,1);
     }
 `
 
@@ -139,7 +138,6 @@ class Game {
         this.width = GameWidth
         this.height = GameHeight
         this.snakes = []
-        this.initSnakesNum = 3
         this.playerID = Math.floor(Math.random()*100000000).toString()
         this.lastDataUpdatedTime = new Date().getTime()
         this.connectToServer()
@@ -147,7 +145,6 @@ class Game {
 
     getHost () {
         let host = /^http\:\/\/([0-9|A-z|\.|\-]*):9527/.exec(window.location.href)
-        //console.log(host)
         return host[1]
     }
 
@@ -173,8 +170,6 @@ class Game {
 
             this.initCanvas()
             this.initHandler()
-
-            console.log(this.snakes[this.playerID].color)
 
             this.runGame()
         })
@@ -215,13 +210,14 @@ class Game {
                 this.lastDataUpdatedTime = t
             }
             this.render()
-            // requestAnimationFrame(function () {
-            //     this.runGame()
-            // }.bind(this))
 
-            setTimeout(() => {
+            requestAnimationFrame(function () {
                 this.runGame()
-            }, 500)
+            }.bind(this))
+
+            // setTimeout(() => {
+            //     this.runGame()
+            // }, 500)
         } else {
             alert('Game Over')
         }
