@@ -2,6 +2,10 @@
 
 class Game {
     constructor () {
-        
+
+    }
+
+    updateGameData() {
+
     }
 }
