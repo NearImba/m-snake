@@ -3,6 +3,7 @@
 const http = require('http')
 const fs = require('fs')
 
+
 const app = http.createServer((request, response) => {
     fs.readFile(__dirname + request.url,
         function (err, data) {
@@ -18,22 +19,66 @@ const app = http.createServer((request, response) => {
 
 const io = require('socket.io')(app)
 
-const MAXUSERNUM = 6
+const MAXUSERSNUM = 6
+const Snake = require('./scripts/Snake')
+const SendGameDataPerTime = 80
+const LENGTH = 400
+
 let USERS = []
 let SNAKES = {}
+let GameStarted = false
 
 io.on('connection', function (socket) {
-    if(USERS.length >= MAXUSERNUM) {
+    if(USERS.length >= MAXUSERSNUM) {
         socket.emit('reject')
         return
     }
     let ID = ''
+
+    function gameDataUpdate () {
+        for(let userId in SNAKES) {
+            SNAKES[userId].move()
+        }
+
+        //send graph data to clients
+        let rData = {
+            'snakes': {}
+        }
+
+        for(let key in SNAKES) {
+            rData.snakes[key] = {
+                'body': SNAKES[key].body,
+                'color': SNAKES[key].color
+            }
+        }
+
+        io.emit('render-data', rData)
+
+        setTimeout(gameDataUpdate, SendGameDataPerTime)
+    }
+
     //new player joined
     socket.on('request-in', function (data) {
         USERS.push(data)
         ID = data.id
 
         let color = [parseFloat(Math.random().toFixed(2)), parseFloat(Math.random().toFixed(2)), parseFloat(Math.random().toFixed(2)), 1]
+
+        if(!GameStarted){
+            GameStarted = true
+            setTimeout(gameDataUpdate, SendGameDataPerTime)
+        }
+
+        SNAKES[ID] = new Snake({
+            id: ID,
+            startPoint: {
+                x: 200,
+                y: 20 + USERS.length * 30
+            },
+            color: color
+        })
+
+
         socket.emit('approval', {
             id: data.id,
             users: USERS,
@@ -45,23 +90,19 @@ io.on('connection', function (socket) {
             color: color
         })
 
-        socket.broadcast.emit('new', {
-            id: data.id,
-            startPoint: {
-                x: 200,
-                y: 20 + USERS.length * 30
-            },
-            color: color
-        });
     })
 
-    //player sent data to server
-    socket.on('current-snake-data', data => {
-        SNAKES[data.id] = data
-    })
 
     socket.on('current-player-input', data => {
-        socket.broadcast.emit('others-input', data);
+        try {
+            SNAKES[data.id].updateDirectVertex({
+                x: data.targetPoint.x,
+                y: data.targetPoint.y
+            })
+        } catch (e) {
+            console.log(data.id)
+        }
+
     })
 
     socket.on('disconnect', () => {
