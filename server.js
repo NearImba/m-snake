@@ -19,36 +19,64 @@ const app = http.createServer((request, response) => {
 
 const io = require('socket.io')(app)
 
-const MAXUSERSNUM = 6
+const MAXNUM = 6 //user
 const Snake = require('./scripts/Snake')
-const SendGameDataPerTime = 80
+const Food = require('./scripts/Food')
+const SendGameDataPerTime = 20
 const LENGTH = 400
 
 let USERS = []
 let SNAKES = {}
+let FOOD = []
 let GameStarted = false
 
 io.on('connection', function (socket) {
-    if(USERS.length >= MAXUSERSNUM) {
+    if(USERS.length >= MAXNUM) {
         socket.emit('reject')
         return
     }
+    for(let fn = 0; fn < 100; fn++ ) {
+        FOOD.push(new Food())
+    }
+
     let ID = ''
+
+    function getFoodData (FOOD) {
+        let r = []
+        FOOD.forEach( f => {
+            r.push(f.returnRendData())
+        })
+        return r
+    }
 
     function gameDataUpdate () {
         for(let userId in SNAKES) {
             SNAKES[userId].move()
         }
 
+        //remove eat foods
+        for(let en = 0; en < FOOD.length; en++) {
+            for(let key in SNAKES) {
+                if(FOOD[en].check(SNAKES[key].body[0])) {
+                    SNAKES[key].grow(FOOD[en].value)
+                    FOOD.splice(en, 1)
+                    en--
+                }
+
+            }
+        }
+
         //send graph data to clients
         let rData = {
-            'snakes': {}
+            'snakes': {},
+            'food': getFoodData(FOOD)
         }
 
         for(let key in SNAKES) {
             rData.snakes[key] = {
                 'body': SNAKES[key].body,
-                'color': SNAKES[key].color
+                'color': SNAKES[key].color,
+                'style': SNAKES[key].style
             }
         }
 

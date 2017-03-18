@@ -10,6 +10,8 @@ class Snake {
 
         this.color = params && params.color || [parseFloat(Math.random().toFixed(2)), parseFloat(Math.random().toFixed(2)), parseFloat(Math.random().toFixed(2)), 1]
 
+        this.style = Math.floor(Math.random() * 10)
+
         this.directVertex = {
             x: 1,
             y: 0

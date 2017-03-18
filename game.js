@@ -56,7 +56,7 @@ class Game {
         })
 
         this.socket.on('render-data', (data) => {
-            this.renderData = this.filterRenderData(data.snakes)
+            this.renderData = this.filterSnakeRenderData(data.snakes).concat(this.filterFoodRenderData(data.food))
         })
 
         this.socket.on('approval', data => {
@@ -93,7 +93,19 @@ class Game {
         }
     }
 
-    filterRenderData (data) {
+    filterFoodRenderData (data) {
+        let pts = []
+        data.forEach(d => {
+            pts.push(translateXWebToGL(d.x))
+            pts.push(translateYWebToGL(d.y))
+            pts.push(d.color[0])
+            pts.push(d.color[1])
+            pts.push(d.color[2])
+        })
+        return pts
+    }
+
+    filterSnakeRenderData (data) {
         let pts = []
         function returnRenderBodies (body, n) {
             let r = []
